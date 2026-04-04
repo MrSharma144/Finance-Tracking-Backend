@@ -14,6 +14,9 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Auth Configuration
+AUTH_USER_MODEL = 'finance_tracker_api.CustomUser'
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
