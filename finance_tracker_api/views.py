@@ -1,10 +1,11 @@
-from rest_framework import viewsets, permissions
 from .models import Transaction
 from .serializers import TransactionSerializer
+from .filters import TransactionFilter
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filterset_class = TransactionFilter
 
     def get_queryset(self):
         # Users should only see their own transactions
