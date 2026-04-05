@@ -5,8 +5,23 @@ from .models import CustomUser, Transaction
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'role']
-        read_only_fields = ['id']
+        fields = ['id', 'username', 'email', 'role', 'date_joined']
+        read_only_fields = ['id', 'date_joined']
+
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'password', 'email']
+
+    def create(self, validated_data):
+        user = CustomUser.objects.create_user(
+            username=validated_data['username'],
+            password=validated_data['password'],
+            email=validated_data.get('email', '')
+        )
+        return user
 
 
 class TransactionSerializer(serializers.ModelSerializer):

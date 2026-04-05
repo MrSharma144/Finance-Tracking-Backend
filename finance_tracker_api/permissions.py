@@ -24,10 +24,19 @@ class IsViewer(permissions.BasePermission):
 class IsOwnerOrAdmin(permissions.BasePermission):
     """
     Custom permission to only allow owners of an object (or admins) to edit it.
+    Uses 'obj.user' as the ownership link (for Transactions).
     """
     def has_object_permission(self, request, view, obj):
-        # Admin can do anything
         if request.user.role == 'Admin':
             return True
-        # Others must be owner
         return obj.user == request.user
+
+class IsUserOwnerOrAdmin(permissions.BasePermission):
+    """
+    Custom permission for the User model specifically.
+    The owner is the object itself (obj == request.user).
+    """
+    def has_object_permission(self, request, view, obj):
+        if request.user.role == 'Admin':
+            return True
+        return obj == request.user
