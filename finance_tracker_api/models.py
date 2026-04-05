@@ -31,6 +31,24 @@ class Transaction(models.Model):
         (EXPENSE, 'Expense'),
     ]
 
+    CATEGORY_CHOICES = [
+        ('Salary', 'Salary'),
+        ('Freelance', 'Freelance'),
+        ('Investments', 'Investments'),
+        ('Gift', 'Gift'),
+        ('Miscellaneous Income', 'Miscellaneous Income'),
+        ('Rent/Mortgage', 'Rent/Mortgage'),
+        ('Groceries', 'Groceries'),
+        ('Dining Out', 'Dining Out'),
+        ('Transportation', 'Transportation'),
+        ('Utilities', 'Utilities'),
+        ('Healthcare', 'Healthcare'),
+        ('Insurance', 'Insurance'),
+        ('Entertainment', 'Entertainment'),
+        ('Shopping', 'Shopping'),
+        ('Miscellaneous Expense', 'Miscellaneous Expense'),
+    ]
+
     user = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
@@ -41,7 +59,11 @@ class Transaction(models.Model):
         max_length=10,
         choices=TRANSACTION_TYPE_CHOICES
     )
-    category = models.CharField(max_length=100)
+    category = models.CharField(
+        max_length=50, 
+        choices=CATEGORY_CHOICES,
+        default='Miscellaneous Expense'
+    )
     date = models.DateField()
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
