@@ -7,10 +7,22 @@ from .models import Transaction, CustomUser
 from .serializers import TransactionSerializer, UserSerializer, UserRegistrationSerializer
 from .filters import TransactionFilter
 from .permissions import IsAdmin, IsAnalyst, IsViewer, IsOwnerOrAdmin, IsUserOwnerOrAdmin
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 class SummaryView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='global',
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description='Set to true to see system-wide summary (Admin/Analyst only).',
+            ),
+        ],
+        responses={200: OpenApiTypes.OBJECT},
+    )
     def get(self, request, *args, **kwargs):
         """
         Dual-mode endpoint for transaction summary analytics.
