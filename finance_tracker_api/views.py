@@ -13,19 +13,28 @@ class SummaryView(views.APIView):
 
     def get(self, request, *args, **kwargs):
         """
-        Dedicated endpoint for transaction summary analytics.
-        Supported filters: start_date, end_date, category, transaction_type.
+        Dual-mode endpoint for transaction summary analytics.
+        Query Parameters:
+            - global: 'true' (for system-wide stats - Admin/Analyst only)
+            - Standard filters: start_date, end_date, category, transaction_type.
         """
-        # We reuse the logic from the TransactionViewSet but in a standalone view
         user = request.user
+        is_global = request.query_params.get('global', 'false').lower() == 'true'
         
-        # Base queryset based on role
-        if user.role in ['Admin', 'Analyst']:
+        if is_global:
+            # Check if user has permission for global analytics
+            if user.role not in ['Admin', 'Analyst']:
+                return Response(
+                    {"error": "Only Admins and Analysts can access the global summary."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            # Global view: All transactions across the system
             queryset = Transaction.objects.all()
         else:
+            # Personal view: Only the current user's transactions
             queryset = Transaction.objects.filter(user=user)
 
-        # Apply filters
+        # Apply filters (reusing the logic but ensuring we stay within the scope defined above)
         filter_backend = TransactionFilter(request.GET, queryset=queryset)
         queryset = filter_backend.qs
 
@@ -54,12 +63,18 @@ class SummaryView(views.APIView):
                 'net': (cat['income'] or 0) - (cat['expense'] or 0)
             })
 
-        return Response({
+        response_data = {
             'total_income': total_income,
             'total_expense': total_expense,
             'balance': balance,
             'category_breakdown': category_breakdown
-        })
+        }
+
+        # Add total_users only for the global view
+        if is_global:
+            response_data['total_users'] = CustomUser.objects.count()
+
+        return Response(response_data)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all().order_by('id')
