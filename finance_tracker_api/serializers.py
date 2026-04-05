@@ -1,3 +1,4 @@
+import datetime
 from rest_framework import serializers
 from .models import CustomUser, Transaction
 
@@ -23,4 +24,9 @@ class TransactionSerializer(serializers.ModelSerializer):
     def validate_amount(self, value):
         if value <= 0:
             raise serializers.ValidationError("Amount must be greater than zero.")
+        return value
+
+    def validate_date(self, value):
+        if value > datetime.date.today() + datetime.timedelta(days=30):
+            raise serializers.ValidationError("Date cannot be more than 30 days in the future.")
         return value
