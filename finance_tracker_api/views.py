@@ -1,7 +1,8 @@
-from rest_framework import viewsets, permissions, views
+from rest_framework import viewsets, permissions, views, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Sum, Q
+from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Transaction, CustomUser
 from .serializers import TransactionSerializer, UserSerializer, UserRegistrationSerializer
 from .filters import TransactionFilter
@@ -77,6 +78,20 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'me':
             return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated(), IsUserOwnerOrAdmin()]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            "user": UserSerializer(user).data,
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'])
     def me(self, request):
