@@ -1,140 +1,154 @@
-# Finance Tracking API
+# Finance Tracking Backend
+A robust, enterprise-grade financial data management API built with **Django 5.0** and **Django REST Framework (DRF)**. The system features a strictly enforced three-tier Role-Based Access Control (RBAC) system—Admin, Analyst, and Viewer—designed to protect sensitive financial data while providing powerful analytical insights.
 
-A robust, enterprise-grade backend developed with **Django** and **Django REST Framework (DRF)** for personal and professional finance management. This project features high-security authentication, granular Role-Based Access Control (RBAC), and advanced financial analytics.
+Built with a focus on **security-first architecture**, this project demonstrates modern backend engineering patterns including stateless JWT authentication, granular permission layers, automated API documentation, and SQL-optimized financial aggregation.
 
-## 🚀 Key Features
+---
 
-*   **Secure Authentication**: Integrated with **JWT (JSON Web Tokens)** via `SimpleJWT` for stateless authentication.
-*   **Role-Based Access Control (RBAC)**:
-    *   **Admin**: Full system access, including user management and global financial analytics.
-    *   **Analyst**: Access to global financial trends and summaries without record modification.
-    *   **Viewer**: Personal finance tracking (CRUD) and individual summaries.
-*   **Comprehensive Transaction Management**: Seamlessly track Income and Expenses across multiple categories (Salary, Groceries, Rent, etc.).
-*   **Dual-Mode Analytics**:
-    *   **Personal Mode**: View your own financial health.
-    *   **Global Mode**: (Admins/Analysts only) View aggregated system-wide financial data.
-*   **Automated Documentation**: Interactive API documentation powered by **Swagger/OpenAPI** (`drf-spectacular`).
-*   **Filtering & Pagination**: Advanced filtering by date range, category, and transaction type.
+## 💎 Why This Project?
+Financial systems are high-stakes environments where data leaks are unacceptable. This backend solves the core challenges of fintech platforms:
+
+1.  **Multi-User Isolation**: Every request is scoped. Viewers see only their data, while the database-level filtering ensures that a "Viewer" cannot access an "Analyst's" records even with a direct ID.
+2.  **Granular RBAC**: Permissions are not global toggles; they are applied at the route, object, and field levels. 
+3.  **Aggregation Performance**: Advanced summaries and breakdowns (e.g., month-over-month trends, category splits) are calculated directly in the database layer using Django's powerful aggregation engine, ensuring scalability as transaction counts grow.
+
+---
+
+## 🔥 Features
+### 🔐 Authentication & User Management
+*   **JWT Integration**: Stateless authentication using `SimpleJWT` (Bearer tokens).
+*   **Self-Registration**: Open registration for new users with default `Viewer` role.
+*   **Profile Access**: Dedicated `/api/users/me/` endpoint for current user context.
+*   **Admin Control**: Only Admins can list all users or modify user roles and account statuses.
+
+### 💰 Financial Record Management (CRUD)
+*   **Transaction Lifecycle**: Full support for Income and Expense records with categorization.
+*   **Advanced Filtering**: Filter by date range, transaction type, and category using `django-filter`.
+*   **Role-Specific Logic**: 
+    *   **Viewers**: Can Create/Read their own transactions.
+    *   **Analysts**: Can Create/Read/Update/Delete their own, and View all others.
+    *   **Admins**: Full CRUD access system-wide.
+
+### 📊 Dashboard & Analytics
+*   **Dual-Mode Summary**: One endpoint (`/api/summary/`) that intelligently toggles between **Personal** and **Global** modes based on permissions and query flags (`?global=true`).
+*   **Category Breakdown**: Real-time aggregation of spending/income per category (Salary, Groceries, Rent, etc.).
+*   **Financial Health**: Instant calculation of total income, total expense, and net balance.
 
 ---
 
 ## 🛠️ Tech Stack
-
-*   **Backend**: Python, Django 5.0.6, Django REST Framework
-*   **Database**: SQLite (Local), PostgreSQL (Production)
-*   **Security**: JWT Authentication, CORS Headers
-*   **Documentation**: OpenAPI (drf-spectacular)
-*   **Environment**: `python-dotenv` for configuration management
-*   **Deployment**: Ready for Gunicorn & Whitenoise
+| Layer | Technology | Rationale |
+| :--- | :--- | :--- |
+| **Framework** | Django 5.0.6 + DRF | "Batteries-included" security, robust ORM, and enterprise-grade scalability. |
+| **Authentication** | JWT (SimpleJWT) | Stateless, scalable, and cross-platform compatible (Web/Mobile). |
+| **Database** | SQLite / PostgreSQL | SQLite for zero-config local dev; PostgreSQL ready for high-concurrency production. |
+| **Documentation** | drf-spectacular | Industry-standard OpenAPI 3.0 specs with Swagger UI integration. |
+| **Security** | Python-Dotenv | Secure management of secrets and environment variables. |
 
 ---
 
-## 📁 Folder Structure
-
+## 🏗️ Architecture & Design
+### Project Structure
 ```text
-.
-├── finance_project/           # Central Project Configuration
-│   ├── settings.py           # Application settings (JWT, DB, Security)
-│   ├── urls.py               # Main URL routing (Admin, API, Swagger)
-│   └── ...
-├── finance_tracker_api/       # Main API Application
-│   ├── models.py             # Database Schemas (User, Transaction)
-│   ├── views.py              # API Business Logic
-│   ├── serializers.py        # Data Validation & Transformation
-│   ├── permissions.py        # RBAC Implementation
-│   ├── filters.py            # Transaction Filtering Logic
-│   ├── tests_*.py            # Extensive Automated Test Suite
-│   └── ...
-├── .env.example              # Environment Variables Template
-├── manage.py                 # Django CLI Utility
-├── requirements.txt           # Project Dependencies
-├── schema.yml                # Generated OpenAPI Schema
-└── build.sh                  # Deployment/Build Script
+Finance Tracking Backend/
+├── finance_project/          # Project Settings & Routing
+│   ├── settings.py           # JWT, Security, and App Config
+│   └── urls.py               # Main URL entrance (Schema, Swagger, API)
+├── finance_tracker_api/      # Core Business Logic
+│   ├── models.py             # CustomUser (RBAC) & Transaction Schemas
+│   ├── views.py              # API logic & Query Sets
+│   ├── serializers.py        # Input Validation & JSON conversion
+│   ├── permissions.py        # Granular RBAC Permission Classes
+│   ├── filters.py            # Transaction Search & Filtering logic
+│   └── tests_*.py            # Extensive Automated Test Suite
+├── .env.example              # Environment Configuration Template
+├── requirements.txt          # Python Dependencies
+└── schema.yml                # Generated OpenAPI Specification
 ```
+
+### Request Lifecycle
+1.  **Request Entrance**: Hits Django Middleware (CORS, Security, Auth).
+2.  **JWT Authentication**: `JWTAuthentication` extracts the Bearer token and injects the `request.user`.
+3.  **RBAC Gatekeeping**: Custom permission classes (`IsAdmin`, `IsOwnerOrAdmin`) check the user's role against the endpoint requirements.
+4.  **Query Filtering**: `get_queryset()` ensures users can only access records they are authorized to see (Horizontal Privilege Escalation prevention).
+5.  **Validation**: Serializers sanitize and validate inputs before they reach the database.
+6.  **JSON Response**: Results returned with appropriate HTTP codes (201 Created, 403 Forbidden, etc.).
 
 ---
 
-## ⚙️ Setup & Installation
+## 🕹️ API Endpoints & Access Control
+### Permission Matrix
+| Endpoint | Viewer | Analyst | Admin |
+| :--- | :---: | :---: | :---: |
+| **GET /api/users/** | ❌ | ❌ | ✅ |
+| **GET /api/users/me/** | ✅ | ✅ | ✅ |
+| **POST /api/transactions/** | ✅ | ✅ | ✅ |
+| **GET /api/transactions/** | Own Only | All | All |
+| **DELETE /api/transactions/{id}/** | ❌ | Own Only | ✅ |
+| **GET /api/summary/?global=true** | ❌ | ✅ | ✅ |
 
-### 1. Prerequisites
+### Key Endpoints Reference
+*   **Authentication**:
+    *   `POST /api/token/`: Obtain Access/Refresh tokens.
+    *   `POST /api/token/refresh/`: Renew expired tokens.
+*   **Dashboard**:
+    *   `GET /api/summary/`: Personal financial summary.
+    *   `GET /api/summary/?global=true`: System-wide analytics (Admin/Analyst).
+*   **Interactive Docs**:
+    *   `GET /api/docs/`: Swagger UI for interactive testing.
+
+---
+
+## 🚀 Setup & Testing
+### Prerequisites
 *   Python 3.10+
-*   pip (Python Package Manager)
+*   Virtual Environment (venv)
 
-### 2. Clone & Install
-```bash
-# Clone the repository
-git clone <repository-url>
-cd finance-tracking-backend
+### Installation
+1.  **Clone & Enter**:
+    ```bash
+    git clone <repo-url>
+    cd finance-tracking-backend
+    ```
+2.  **Install Dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
+3.  **Environment Setup**:
+    Copy `.env.example` to `.env` and configure your `SECRET_KEY`.
+4.  **Initialize Database**:
+    ```bash
+    python manage.py migrate
+    ```
+5.  **Run Server**:
+    ```bash
+    python manage.py runserver
+    ```
 
-# Create and activate virtual environment
-python -m venv venv
-source venv/Scripts/activate  # On Windows: venv\Scripts\activate
+### 🧪 Quick Test (Demo Credentials)
+You can use the pre-configured admin account to test all features:
+*   **Username**: `admin`
+*   **Password**: `admin` (Use `createsuperuser` if not seeded).
 
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### 3. Environment Configuration
-Copy `.env.example` to `.env` and update the values:
-```bash
-cp .env.example .env
-```
-
-### 4. Database Setup
-```bash
-# Run migrations
-python manage.py migrate
-
-# Create a Superuser (Admin)
-python manage.py createsuperuser
-```
-
-### 5. Run the Server
-```bash
-python manage.py runserver
-```
-The API will be available at `http://127.0.0.1:8000/`.
+**How to authenticate in Swagger UI**:
+1.  Call `POST /api/token/` with the admin credentials.
+2.  Copy the `access` token.
+3.  Click the **"Authorize"** button at the top right of the Swagger UI (`/api/docs/`).
+4.  Enter `Bearer <your_token>` and click Authorize.
 
 ---
 
-## 📖 API Reference
+## 🛡️ Security & Scalability
+### Security Measures
+*   **SQL Injection Prevention**: All records are accessed via Django ORM using parameterized queries.
+*   **Password Hashing**: Uses Django's PBKDF2 hashing algorithm (industry standard).
+*   **Environment Isolation**: Secrets are kept out of source control via `.env`.
+*   **Soft Logic**: Critical endpoints use `queryset` scoping to ensure a user can never "guess" a transaction ID of another user.
 
-### Authentication
-*   **POST** `/api/token/`: Obtain Access & Refresh tokens (Login).
-*   **POST** `/api/token/refresh/`: Refresh an expired access token.
-
-### User Management
-*   **POST** `/api/users/`: Register a new user.
-*   **GET** `/api/users/me/`: Retrieve current user profile.
-
-### Transactions (CRUD)
-*   **GET** `/api/transactions/`: List user transactions (supports filtering).
-*   **POST** `/api/transactions/`: Create a new transaction.
-*   **GET/PUT/PATCH/DELETE** `/api/transactions/{id}/`: Manage specific transaction.
-
-### Analytics & Summaries
-*   **GET** `/api/transactions/summary/`: Personal financial breakdown (Total Income/Expense/Balance).
-*   **GET** `/api/summary/`: 
-    *   **Personal Mode** (Default): Personal analytics.
-    *   **Global Mode** (Admin/Analyst): Use `?global=true` for system-wide insights.
-
-### Interactive Documentation
-*   **Swagger UI**: `/api/schema/swagger-ui/`
-*   **Redoc**: `/api/schema/redoc/`
+### Scalability Roadmap
+*   **PostgreSQL**: Built-in support for PG for handling high-throughput production workloads.
+*   **Caching**: Ready for Redis integration to cache heavy global analytics summaries.
+*   **Background Tasks**: Architecture allows for Easy integration of Celery for monthly PDF report generation.
 
 ---
-
-## 🧪 Testing
-
-The project includes as extensive test suite covering RBAC, Analytics, and User Management.
-```bash
-# Run all tests
-python manage.py test finance_tracker_api
-```
-
----
-
-## 📄 License
-This project is for educational/internal use.
-
----
+*Created as a demonstration of high-quality backend engineering with Django.*
