@@ -144,7 +144,11 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             if user.role == 'Viewer':
-                # Viewers are read-only for all transaction management actions
+                if self.action == 'create':
+                    # Allow Viewers to create transactions (POST)
+                    return [permissions.IsAuthenticated()]
+                
+                # Viewers are read-only for editing/deleting
                 class IsReadOnly(permissions.BasePermission):
                     def has_permission(self, request, view): return False
                 return [IsReadOnly()]

@@ -51,13 +51,24 @@ class RBAC_Tests(APITestCase):
         response = self.client.get(reverse('transaction-list'))
         self.assertEqual(len(response.data['results']), 0) # This user has no tx
 
-    def test_viewer_cannot_create(self):
+    def test_viewer_can_create(self):
         self.client.login(username='viewer', password='password')
         data = {
-            'amount': 10,
+            'amount': 10.00,
             'transaction_type': 'Expense',
-            'category': 'Testing',
+            'category': 'Groceries',
             'date': '2024-01-01'
         }
         response = self.client.post(reverse('transaction-list'), data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Transaction.objects.filter(user=self.viewer).count(), 1)
+
+    def test_viewer_cannot_delete_own_tx(self):
+        # Create a tx for viewer first
+        viewer_tx = Transaction.objects.create(
+            user=self.viewer, amount=20.00, transaction_type='Expense', category='Groceries', date='2024-01-01'
+        )
+        self.client.login(username='viewer', password='password')
+        url = reverse('transaction-detail', kwargs={'pk': viewer_tx.pk})
+        response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
